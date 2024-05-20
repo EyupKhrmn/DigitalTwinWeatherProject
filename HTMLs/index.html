@@ -28,11 +28,11 @@
                 const degree = parseFloat(data.result[0].degree);
                 var color;
                 if (degree < 10) {
-                    color = '#0000FF'; // Blue
+                    color = '#ff0000'; // Blue
                 } else if (degree >= 10 && degree <= 20) {
-                    color = '#FFFF00'; // Yellow
+                    color = '#ffe117'; // Yellow
                 } else {
-                    color = '#FF0000'; // Red
+                    color = '#24bf00'; // Red
                 }
 
                 new google.maps.Circle({
