@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Values Display</title>
+</head>
+<body>
+    <p id="response"></p>
+
+    <script>
+        // ValuesAPI'dan veri al
+        fetch('http://localhost:5005/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                degree: [21.43, 24.55, 17.47, 16.78, 9.31],  // Örnek derece değerleri
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Veriyi ekrana yazdır
+            var responseParagraph = document.getElementById('response');
+            responseParagraph.textContent = JSON.stringify(data.predicted_power_differences);
+        })
+        .catch((error) => console.error('Error:', error));
+    </script>
+</body>
+</html>

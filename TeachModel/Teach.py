@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
+import numpy as np
 
 # Veri setini oku
 df = pd.read_csv('/Users/eyupkahraman/Desktop/DigitalTwinWeatherProject/GenerateCSV/Required_data.csv')
@@ -22,11 +23,12 @@ model.fit(X_train, y_train)
 # Test seti üzerinde tahmin yap
 predictions = model.predict(X_test)
 
-# Tahmin etmek istediğiniz 'degree' değerini belirleyin
-degree_value = [[25.0]]
-
 
 def predict_power_difference(degree_value):
+    # degree_value'yu bir numpy array'e dönüştür
+    degree_value = np.array([degree_value]).reshape(-1, 1)
+
     predicted_power_difference = model.predict(degree_value)
 
-    return predicted_power_difference
+    # Tahmin edilen güç farkını tek bir değer olarak döndür
+    return predicted_power_difference.tolist()
