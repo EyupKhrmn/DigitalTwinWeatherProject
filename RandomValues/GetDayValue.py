@@ -57,15 +57,37 @@ def GetDayValue():
     LIMIT 1
     """
 
+    from datetime import datetime
+
+    # Bugünün adını elde et
+    today_name = datetime.now().strftime('%A')
+
+    value = 0
+
+    if today_name == 'Monday':
+        value = 0
+    elif today_name == 'Tuesday':
+        value = 1
+    elif today_name == 'Wednesday':
+        value = 2
+    elif today_name == 'Thursday':
+        value = 3
+    elif today_name == 'Friday':
+        value = 4
+    elif today_name == 'Saturday':
+        value = 5
+    elif today_name == 'Sunday':
+        value = 6
+
+
     cursor.execute(query)
     row = cursor.fetchone()
 
     if row:
         weather_data = json.loads(row[0])
         if 'result' in weather_data and weather_data['result']:
-            latest_weather = weather_data['result'][0]
+            latest_weather = weather_data['result'][value]
             return {
-                "day": latest_weather.get('day', ''),
                 "description": latest_weather.get('description', ''),
                 "degree": latest_weather.get('degree', '')
             }

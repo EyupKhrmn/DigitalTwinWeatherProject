@@ -13,7 +13,7 @@ headers = {
     'authorization': "apikey 4ttyekL5JKEfakJkQdv05i:1wYsGb1x78craBhIxsRXVj"
 }
 
-conn.request("GET", "/weather/getWeather?data.lang=tr&data.city=Burdur", headers=headers)
+conn.request("GET", "/weather/getWeather?data.lang=tr&data.city=Kars", headers=headers)
 
 res = conn.getresponse()
 data = res.read()
@@ -23,7 +23,7 @@ print(data.decode("utf-8"))
 weather_data = json.loads(data.decode("utf-8"))
 
 
-db_conn = sqlite3.connect('../Databases/weatherBurdur.db')
+db_conn = sqlite3.connect('../Databases/weatherKars.db')
 
 cursor = db_conn.cursor()
 
