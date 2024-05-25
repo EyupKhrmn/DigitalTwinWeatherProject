@@ -15,6 +15,9 @@
     <div id="map"></div>
 
     <script>
+    var circles = {};  // Çemberleri tutmak için bir obje oluştur
+    var infoWindows = {};  // InfoWindow'ları tutmak için bir obje oluştur
+
     function fetchWeatherDataAndSetColor(map, location) {
         fetch(`http://127.0.0.1:${location.port}/weather`)
         .then(response => {
@@ -35,7 +38,14 @@
                     color = '#24bf00'; // Red
                 }
 
-                new google.maps.Circle({
+                // Önceki çemberi ve InfoWindow'u sil
+                if (circles[location.port]) {
+                    circles[location.port].setMap(null);
+                    infoWindows[location.port].close();
+                }
+
+                // Yeni çemberi oluştur ve objeye ekle
+                var circle = new google.maps.Circle({
                     strokeColor: color,
                     strokeOpacity: 0.8,
                     strokeWeight: 2,
@@ -44,6 +54,24 @@
                     map: map,
                     center: {lat: location.lat, lng: location.lng},
                     radius: 45000
+                });
+                circles[location.port] = circle;
+
+                // Yeni InfoWindow'u oluştur ve objeye ekle
+                var infoWindow = new google.maps.InfoWindow({
+                    content: `Degree: ${degree}`
+                });
+                infoWindows[location.port] = infoWindow;
+
+                // Çember üzerine gelindiğinde InfoWindow'u göster
+                google.maps.event.addListener(circle, 'mouseover', function() {
+                    infoWindow.setPosition(circle.getCenter());
+                    infoWindow.open(map);
+                });
+
+                // Çember üzerinden çıkıldığında InfoWindow'u gizle
+                google.maps.event.addListener(circle, 'mouseout', function() {
+                    infoWindow.close();
                 });
             } else {
                 console.error('Data format is incorrect:', data);
@@ -61,12 +89,16 @@
         const locations = [
             {lat: 40.816594, lng: 39.572841, port: 5000}, // Trabzon
             {lat: 41.056706, lng: 29.046138, port: 5001}, // Istanbul
-            {lat: 37.717307, lng: 30.290386, port: 5002}  // Burdur
+            {lat: 37.717307, lng: 30.290386, port: 5002}, // Burdur
+            {lat: 39.940425, lng: 32.972271, port: 5003},  // Ankara
+            {lat: 40.619607, lng: 43.089890, port: 5004}  // Kars
         ];
 
-        locations.forEach(location => {
-            fetchWeatherDataAndSetColor(map, location);
-        });
+        setInterval(() => {
+            locations.forEach(location => {
+                fetchWeatherDataAndSetColor(map, location);
+            });
+        }, 1000);  // 1000 milisaniye (1 saniye) aralıklarla istek atılır
     }
     </script>
 
