@@ -6,100 +6,180 @@
     <title>Weather Map</title>
     <style>
         #map {
-            height: 600px;
+            height: 533px;
             width: 100%;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: left;
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <div id="results">
+        <table>
+            <thead>
+                <tr>
+                    <th>City</th>
+                    <th>Degree</th>
+                    <th>Predicted Power Difference</th>
+                    <th>AI Message</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody">
+            </tbody>
+        </table>
+    </div>
 
     <script>
-    var circles = {};  // Çemberleri tutmak için bir obje oluştur
-    var infoWindows = {};  // InfoWindow'ları tutmak için bir obje oluştur
+    var circles = {};
+    var infoWindows = {};
+    var resultsBody = document.getElementById('resultsBody');
+    var degree_values = [];
+    var rows = {};
+    var liste = [];
 
-    function fetchWeatherDataAndSetColor(map, location) {
-        fetch(`http://127.0.0.1:${location.port}/weather`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.result && Array.isArray(data.result)) {
-                const degree = parseFloat(data.result[0].degree);
-                var color;
-                if (degree < 10) {
-                    color = '#ff0000'; // Blue
-                } else if (degree >= 10 && degree <= 20) {
-                    color = '#ffe117'; // Yellow
-                } else {
-                    color = '#24bf00'; // Red
-                }
-
-                // Önceki çemberi ve InfoWindow'u sil
-                if (circles[location.port]) {
-                    circles[location.port].setMap(null);
-                    infoWindows[location.port].close();
-                }
-
-                // Yeni çemberi oluştur ve objeye ekle
-                var circle = new google.maps.Circle({
-                    strokeColor: color,
-                    strokeOpacity: 0.8,
-                    strokeWeight: 2,
-                    fillColor: color,
-                    fillOpacity: 0.35,
-                    map: map,
-                    center: {lat: location.lat, lng: location.lng},
-                    radius: 45000
-                });
-                circles[location.port] = circle;
-
-                // Yeni InfoWindow'u oluştur ve objeye ekle
-                var infoWindow = new google.maps.InfoWindow({
-                    content: `Degree: ${degree}`
-                });
-                infoWindows[location.port] = infoWindow;
-
-                // Çember üzerine gelindiğinde InfoWindow'u göster
-                google.maps.event.addListener(circle, 'mouseover', function() {
-                    infoWindow.setPosition(circle.getCenter());
-                    infoWindow.open(map);
-                });
-
-                // Çember üzerinden çıkıldığında InfoWindow'u gizle
-                google.maps.event.addListener(circle, 'mouseout', function() {
-                    infoWindow.close();
-                });
-            } else {
-                console.error('Data format is incorrect:', data);
-            }
-        })
-        .catch(error => console.error('Error fetching weather data:', error));
+    async function listeDoldur(){
+        const response = await fetch('http://localhost:5005/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                degree: [16.78, 21.43, 24.45, 17.47, 9.31],
+            }),
+        });
+        const data = await response.json();
+        liste = data.predicted_power_differences;
     }
 
-    function initMap() {
+    async function fetchWeatherDataAndSetColor(map, location) {
+        const response = await fetch(`http://127.0.0.1:${location.port}/weather`);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        if (data.result && Array.isArray(data.result)) {
+            const degree = parseFloat(data.result[0].degree);
+            degree_values.push({degree: degree, city: location.name});
+
+            if(liste.length == 0) {
+                console.error("Liste boş");
+            }
+            var row = rows[location.port] || document.createElement('tr');
+            var cityCell = row.children[0] || document.createElement('td');
+            cityCell.textContent = location.name;
+            var degreeCell = row.children[1] || document.createElement('td');
+            degreeCell.textContent = degree;
+
+            var tableRows = resultsBody.getElementsByTagName('tr');
+            for (var i = 0; i < liste.length + 1; i++) {
+                if (tableRows[i]) {
+                    if (tableRows[i].cells[2] && tableRows[i].cells[2].textContent == liste[i]) {
+                        continue;
+                    }
+                    var predictedPowerDifferenceCell = document.createElement('td');
+                    predictedPowerDifferenceCell.textContent = liste[i];
+                    tableRows[i].appendChild(predictedPowerDifferenceCell);
+
+                    var messageCell = row.children[4] || document.createElement('td');
+                    if (liste[i] > 0.0 && liste[i] < 2.0) {
+                        messageCell.style.color = "red";
+                        messageCell.textContent = "Güç Ve Güneş Işınlaması Yeterli Olmayacaktır. --Veri Gönderme Süresi: 1 h";
+                    } else if (liste[i] > 2.0 && liste[i] < 3.0) {
+                        messageCell.style.color = "#DAA520";
+                        messageCell.textContent = "Güç Ve Güneş Işınlaması Yeterli Olabilir. --Veri Gönderme Süresi: 30 m";
+                    } else if(liste[i] > 3.0) {
+                        messageCell.style.color = "green";
+                        messageCell.textContent = "Güç Ve Güneş Işınlaması Yeterli Olacaktır. --Veri Gönderme Süresi: 1 m";
+                    }
+                    tableRows[i].appendChild(messageCell);
+                }
+            }
+
+            if (!rows[location.port]) {
+                row.appendChild(cityCell);
+                row.appendChild(degreeCell);
+                resultsBody.appendChild(row);
+                rows[location.port] = row;
+            }
+
+            var color;
+            if (degree < 10) {
+                color = '#ff0000';
+            } else if (degree >= 10 && degree <= 20) {
+                color = '#ffe117';
+            } else {
+                color = '#24bf00';
+            }
+
+            if (circles[location.port]) {
+                circles[location.port].setMap(null);
+                infoWindows[location.port].close();
+            }
+
+            var circle = new google.maps.Circle({
+                strokeColor: color,
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: color,
+                fillOpacity: 0.35,
+                map: map,
+                center: {lat: location.lat, lng: location.lng},
+                radius: 45000
+            });
+            circles[location.port] = circle;
+
+            var infoWindow = new google.maps.InfoWindow({
+                content: `Degree: ${degree}`
+            });
+            infoWindows[location.port] = infoWindow;
+
+            google.maps.event.addListener(circle, 'mouseover', function() {
+                infoWindow.setPosition(circle.getCenter());
+                infoWindow.open(map);
+            });
+
+            google.maps.event.addListener(circle, 'mouseout', function() {
+                infoWindow.close();
+            });
+        } else {
+            console.error('Data format is incorrect:', data);
+        }
+    }
+
+    async function initMap() {
         var map = new google.maps.Map(document.getElementById('map'), {
             zoom: 6.75,
             center: {lat: 38.946133, lng: 35.392863}
         });
 
         const locations = [
-            {lat: 40.816594, lng: 39.572841, port: 5000}, // Trabzon
-            {lat: 41.056706, lng: 29.046138, port: 5001}, // Istanbul
-            {lat: 37.717307, lng: 30.290386, port: 5002}, // Burdur
-            {lat: 39.940425, lng: 32.972271, port: 5003},  // Ankara
-            {lat: 40.619607, lng: 43.089890, port: 5004}  // Kars
+            {lat: 40.816594, lng: 39.572841, port: 5000, name: 'Trabzon'},
+            {lat: 41.056706, lng: 29.046138, port: 5001, name: 'Istanbul'},
+            {lat: 37.717307, lng: 30.290386, port: 5002, name: 'Burdur'},
+            {lat: 39.940425, lng: 32.972271, port: 5003, name: 'Ankara'},
+            {lat: 40.619607, lng: 43.089890, port: 5004, name: 'Kars'}
         ];
 
-        setInterval(() => {
-            locations.forEach(location => {
-                fetchWeatherDataAndSetColor(map, location);
-            });
-        }, 1000);  // 1000 milisaniye (1 saniye) aralıklarla istek atılır
+        await listeDoldur();
+
+        setInterval(async function() {
+            for (let i = 0; i < locations.length; i++) {
+                await fetchWeatherDataAndSetColor(map, locations[i]);
+            }
+        }, 1000);
     }
+
     </script>
 
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC0EK56nS7Sei7xl0b_5wK0j_LfipWNCg8&callback=initMap"></script>
