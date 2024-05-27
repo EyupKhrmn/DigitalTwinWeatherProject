@@ -47,15 +47,16 @@
     var degree_values = [];
     var rows = {};
     var liste = [];
+    var liste2 = [];
 
-    async function listeDoldur(){
+    async function listeDoldur(liste_value){
         const response = await fetch('http://localhost:5005/predict', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                degree: [16.78, 21.43, 24.45, 17.47, 9.31],
+                degree: liste_value,
             }),
         });
         const data = await response.json();
@@ -70,6 +71,7 @@
         const data = await response.json();
         if (data.result && Array.isArray(data.result)) {
             const degree = parseFloat(data.result[0].degree);
+            liste2.push(degree);
             degree_values.push({degree: degree, city: location.name});
 
             if(liste.length == 0) {
@@ -152,6 +154,8 @@
             google.maps.event.addListener(circle, 'mouseout', function() {
                 infoWindow.close();
             });
+
+            await listeDoldur(liste2);
         } else {
             console.error('Data format is incorrect:', data);
         }
@@ -171,7 +175,6 @@
             {lat: 40.619607, lng: 43.089890, port: 5004, name: 'Kars'}
         ];
 
-        await listeDoldur();
 
         setInterval(async function() {
             for (let i = 0; i < locations.length; i++) {
